@@ -1,5 +1,19 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# =========================================================================
+# GLOBALS
+# =========================================================================
+.DS_Store
+*.pem
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
+# =========================================================================
+# NEXT.JS & NODE.JS (Web Dashboard)
+# =========================================================================
 # dependencies
 /node_modules
 /.pnp
@@ -17,21 +31,14 @@
 /.next/
 /out/
 
-# production
+# production build
 /build
 
-# misc
-.DS_Store
-*.pem
-
-# debug
+# debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
 
 # vercel
 .vercel
@@ -39,3 +46,39 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# =========================================================================
+# ENVIRONMENT VARIABLES (CRITICAL - DO NOT COMMIT TOKENS)
+# =========================================================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# =========================================================================
+# FLUTTER & DART (Mobile App)
+# Note: Flutter otomatis memiliki .gitignore di folder smartcloches-mobile/
+# Aturan di bawah ini adalah pencegahan ekstra (safeguard)
+# =========================================================================
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/build/
+**/.pub-cache/
+**/.pub/
+**/app-profile.aab
+**/app-release.aab
+**/app-profile.apk
+**/app-release.apk
+
+# =========================================================================
+# ARDUINO / ESP32
+# =========================================================================
+**/*.hex
+**/*.elf
+**/*.bin
+**/build/
+**/.vscode/arduino.json
