@@ -123,6 +123,32 @@ graph TD
 
 ## 📡 Usage Flow & Provisioning
 
+```mermaid
+flowchart TD
+    Start([Power On ESP32]) --> CheckWiFi{Saved WiFi\nCredentials?}
+    
+    CheckWiFi -- Yes --> ConnectWiFi[Connect to WiFi]
+    ConnectWiFi --> ConnectBlynk{Connect to\nBlynk Cloud?}
+    
+    ConnectBlynk -- Yes --> OnlineMode[Online Mode]
+    OnlineMode --> WaitCommand[Wait for Web/Mobile\nCommands]
+    WaitCommand --> ExecuteServo[Move Servo]
+    ExecuteServo --> WaitCommand
+    
+    CheckWiFi -- No --> BTMode[Start Bluetooth\n'ESP32-Setup']
+    ConnectBlynk -- No --> BTMode
+    
+    BTMode --> WaitBT[Wait for Mobile App\nBT Connection]
+    WaitBT --> ReceiveData{Data Received?}
+    ReceiveData -- Yes --> ParseData{Is it 'RESET'?}
+    
+    ParseData -- Yes --> ClearEEPROM[Clear Saved WiFi]
+    ClearEEPROM --> Restart([Restart ESP32])
+    
+    ParseData -- No --> SaveWiFi[Save SSID & Password\nto Flash]
+    SaveWiFi --> Restart
+```
+
 1. **First Boot:** Power up the ESP32. The LED/Serial Monitor will indicate it is waiting for Bluetooth.
 2. **Pairing:** Open your Android Phone's Settings -> Bluetooth, and pair with `ESP32-Setup`.
 3. **Provisioning:** Open the *Smart Cloches* mobile app, tap the **Bluetooth (⚙️)** icon, enter your WiFi credentials, and tap send.
