@@ -125,14 +125,21 @@ graph TD
 
 ```mermaid
 flowchart TD
-    A([Power On ESP32]) --> B{WiFi Saved?}
+    A([Power On ESP32]) --> B{Check Saved WiFi}
     
-    B -- "No" --> C[Start Bluetooth Setup]
-    C --> D[Enter WiFi via Mobile App]
-    D --> E([Save & Restart])
+    B -- "Not Found / Fails" --> C[Start Bluetooth Setup Mode]
+    C --> D[Receive Credentials via Mobile App]
+    D --> E([Save to Flash & Restart])
     
-    B -- "Yes" --> F[Connect to WiFi & Blynk]
-    F --> G([Ready to Control via App/Web])
+    B -- "Success" --> F[Connect to Blynk Cloud]
+    F --> G[Sync Current Servo Position]
+    
+    G --> H[Standby / Listen for Commands]
+    
+    H -- "Command via Web Dashboard" --> I[Move Servo Smoothly]
+    H -- "Command via Mobile App" --> I
+    
+    I --> H
 ```
 
 1. **First Boot:** Power up the ESP32. The LED/Serial Monitor will indicate it is waiting for Bluetooth.
