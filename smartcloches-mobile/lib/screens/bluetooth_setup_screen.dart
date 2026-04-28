@@ -166,7 +166,7 @@ class _BluetoothSetupScreenState extends State<BluetoothSetupScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.textPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -174,7 +174,7 @@ class _BluetoothSetupScreenState extends State<BluetoothSetupScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: AppTheme.textPrimary,
           ),
         ),
       ),
@@ -184,51 +184,67 @@ class _BluetoothSetupScreenState extends State<BluetoothSetupScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             GlassCard(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  Icon(
-                    _isConnected ? Icons.bluetooth_connected : Icons.bluetooth,
-                    size: 48,
-                    color: _isConnected ? AppTheme.accentPrimary : Colors.white54,
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: (_isConnected ? AppTheme.accentPrimary : AppTheme.textTertiary).withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      _isConnected ? Icons.bluetooth_connected_rounded : Icons.bluetooth_rounded,
+                      size: 32,
+                      color: _isConnected ? AppTheme.accentPrimary : AppTheme.textTertiary,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     _statusText,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: _isConnected ? AppTheme.accentPrimary : Colors.white70,
+                      color: _isConnected ? AppTheme.success : AppTheme.textSecondary,
                       fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isConnecting || _isConnected ? null : _connectToESP,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.accentPrimary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isConnecting || _isConnected ? null : _connectToESP,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accentPrimary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                    ),
-                    child: _isConnecting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                      child: _isConnecting
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _isConnected ? 'Perangkat Terhubung' : 'Cari Perangkat ESP32',
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                          )
-                        : Text(_isConnected ? 'Terhubung' : 'Hubungkan ke ESP32'),
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
             GlassCard(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -236,24 +252,29 @@ class _BluetoothSetupScreenState extends State<BluetoothSetupScreen> {
                     "Konfigurasi Jaringan",
                     style: TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.textPrimary,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextField(
                     controller: _ssidController,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
                       labelText: "Nama WiFi (SSID)",
-                      labelStyle: const TextStyle(color: Colors.white54),
+                      labelStyle: const TextStyle(color: AppTheme.textTertiary),
+                      hintText: "Contoh: MyHomeWiFi",
+                      prefixIcon: const Icon(Icons.wifi_rounded, color: AppTheme.textTertiary, size: 20),
+                      filled: true,
+                      fillColor: AppTheme.bgColor.withValues(alpha: 0.5),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white24),
-                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.divider),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: AppTheme.accentPrimary),
-                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.accentPrimary, width: 2),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                   ),
@@ -261,54 +282,73 @@ class _BluetoothSetupScreenState extends State<BluetoothSetupScreen> {
                   TextField(
                     controller: _passController,
                     obscureText: true,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
                       labelText: "Password WiFi",
-                      labelStyle: const TextStyle(color: Colors.white54),
+                      labelStyle: const TextStyle(color: AppTheme.textTertiary),
+                      hintText: "********",
+                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppTheme.textTertiary, size: 20),
+                      filled: true,
+                      fillColor: AppTheme.bgColor.withValues(alpha: 0.5),
                       enabledBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.white24),
-                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.divider),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: AppTheme.accentPrimary),
-                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppTheme.accentPrimary, width: 2),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   Row(
                     children: [
                       Expanded(
-                        child: ElevatedButton(
+                        child: ElevatedButton.icon(
                           onPressed: _isConnected ? _sendWifiConfig : null,
+                          icon: const Icon(Icons.send_rounded, size: 18),
+                          label: const Text('Kirim Konfigurasi'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppTheme.accentPrimary,
                             foregroundColor: Colors.white,
+                            elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                           ),
-                          child: const Text('Kirim ke ESP32'),
                         ),
                       ),
                       const SizedBox(width: 12),
-                      IconButton(
-                        onPressed: _isConnected ? _resetWifi : null,
-                        tooltip: "Reset WiFi di ESP32",
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppTheme.danger.withValues(alpha: 0.2),
-                          foregroundColor: AppTheme.danger,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          padding: const EdgeInsets.all(16),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.danger.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        icon: const Icon(Icons.wifi_off),
+                        child: IconButton(
+                          onPressed: _isConnected ? _resetWifi : null,
+                          tooltip: "Reset WiFi",
+                          style: IconButton.styleFrom(
+                            foregroundColor: AppTheme.danger,
+                            padding: const EdgeInsets.all(16),
+                          ),
+                          icon: const Icon(Icons.refresh_rounded),
+                        ),
                       )
                     ],
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Center(
+              child: Text(
+                "Pastikan ESP32 sudah dalam mode Setup",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textTertiary,
+                  fontStyle: FontStyle.italic,
+                ),
               ),
             ),
           ],

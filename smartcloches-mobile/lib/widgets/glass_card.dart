@@ -16,16 +16,13 @@ class GlassCard extends StatelessWidget {
     return Container(
       padding: padding ?? const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppTheme.cardBgTranslucent,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppTheme.glassBorder),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black54,
-            blurRadius: 32,
-            offset: Offset(0, 8),
-          ),
-        ],
+        color: AppTheme.cardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.divider.withValues(alpha: 0.5),
+          width: 1,
+        ),
+        boxShadow: AppTheme.softShadow,
       ),
       child: child,
     );

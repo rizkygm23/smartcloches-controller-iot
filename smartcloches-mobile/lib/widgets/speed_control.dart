@@ -42,9 +42,9 @@ class SpeedControl extends StatelessWidget {
                 const Text(
                   'KECEPATAN',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
+                    color: AppTheme.textTertiary,
                     letterSpacing: 2,
                   ),
                 ),
@@ -52,56 +52,50 @@ class SpeedControl extends StatelessWidget {
                 Text(
                   _getSpeedLabel(speed),
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
                   ),
                 ),
               ],
             ),
-            // Speed value badge
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
               decoration: BoxDecoration(
-                color: AppTheme.accentPrimary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
+                color: AppTheme.accentPrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: AppTheme.accentPrimary.withValues(alpha: 0.3),
+                  color: AppTheme.accentPrimary.withValues(alpha: 0.15),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Step $step',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.accentPrimary,
-                    ),
-                  ),
-                ],
+              child: Text(
+                'Step $step',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.accentPrimary,
+                ),
               ),
             ),
           ],
         ),
 
-        const SizedBox(height: 28),
+        const SizedBox(height: 24),
 
         // Slider
         SliderTheme(
           data: SliderThemeData(
             activeTrackColor: AppTheme.accentPrimary,
-            inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
+            inactiveTrackColor: AppTheme.divider,
             thumbColor: Colors.white,
-            overlayColor: AppTheme.accentPrimary.withValues(alpha: 0.15),
+            overlayColor: AppTheme.accentPrimary.withValues(alpha: 0.12),
             trackHeight: 6,
             thumbShape: const RoundSliderThumbShape(
               enabledThumbRadius: 12,
-              elevation: 4,
-              pressedElevation: 8,
+              elevation: 3,
+              pressedElevation: 6,
             ),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 24),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 22),
           ),
           child: Slider(
             value: speed,
@@ -122,11 +116,11 @@ class SpeedControl extends StatelessWidget {
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: 20,
-                height: 4,
+                height: 3,
                 decoration: BoxDecoration(
                   color: isActive
                       ? AppTheme.accentPrimary
-                      : Colors.white.withValues(alpha: 0.1),
+                      : AppTheme.divider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               );
@@ -146,14 +140,14 @@ class SpeedControl extends StatelessWidget {
                 'Lambat',
                 style: TextStyle(
                   fontSize: 11,
-                  color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                  color: AppTheme.textTertiary.withValues(alpha: 0.7),
                 ),
               ),
               Text(
                 'Cepat',
                 style: TextStyle(
                   fontSize: 11,
-                  color: AppTheme.textSecondary.withValues(alpha: 0.6),
+                  color: AppTheme.textTertiary.withValues(alpha: 0.7),
                 ),
               ),
             ],

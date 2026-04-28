@@ -14,9 +14,9 @@ void main() {
   // Set system UI overlay style (status bar)
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
+    statusBarIconBrightness: Brightness.dark,
     systemNavigationBarColor: AppTheme.bgColor,
-    systemNavigationBarIconBrightness: Brightness.light,
+    systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
   runApp(const SmartClochesApp());
@@ -30,7 +30,7 @@ class SmartClochesApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Cloches',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       home: const HomePage(),
     );
   }
