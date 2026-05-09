@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-class SpeedControl extends StatelessWidget {
+class SpeedControl extends StatefulWidget {
   final double speed;
   final bool isLoading;
   final ValueChanged<double> onChanged;
@@ -13,21 +14,62 @@ class SpeedControl extends StatelessWidget {
     required this.onChanged,
   });
 
+  @override
+  State<SpeedControl> createState() => _SpeedControlState();
+}
+
+class _SpeedControlState extends State<SpeedControl> {
+  double _localSpeed = 0;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _localSpeed = widget.speed;
+  }
+
+  @override
+  void didUpdateWidget(SpeedControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only sync from parent if we're not actively dragging
+    if (_debounce == null || !_debounce!.isActive) {
+      _localSpeed = widget.speed;
+    }
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
   String _getSpeedLabel(double val) {
-    if (val <= 20) return 'Sangat Lambat 🐢';
-    if (val <= 40) return 'Lambat 🚶';
-    if (val <= 60) return 'Normal 👍';
-    if (val <= 80) return 'Cepat ⚡';
-    return 'Sangat Cepat 🔥';
+    if (val <= 20) return 'Sangat Lambat';
+    if (val <= 40) return 'Lambat';
+    if (val <= 60) return 'Normal';
+    if (val <= 80) return 'Cepat';
+    return 'Sangat Cepat';
   }
 
   int _getStep(double val) {
     return ((val / 100) * 9 + 1).round().clamp(1, 10);
   }
 
+  void _onSliderChanged(double value) {
+    setState(() {
+      _localSpeed = value;
+    });
+
+    // Debounce the API call — only send after user stops sliding for 300ms
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      widget.onChanged(value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final step = _getStep(speed);
+    final step = _getStep(_localSpeed);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +92,7 @@ class SpeedControl extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _getSpeedLabel(speed),
+                  _getSpeedLabel(_localSpeed),
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -98,11 +140,11 @@ class SpeedControl extends StatelessWidget {
             overlayShape: const RoundSliderOverlayShape(overlayRadius: 22),
           ),
           child: Slider(
-            value: speed,
+            value: _localSpeed,
             min: 0,
             max: 100,
-            divisions: 100,
-            onChanged: isLoading ? null : onChanged,
+            divisions: 10,
+            onChanged: widget.isLoading ? null : _onSliderChanged,
           ),
         ),
 

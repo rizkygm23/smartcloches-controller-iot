@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import '../services/blynk_service.dart';
+import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/sensor_card.dart';
@@ -25,6 +28,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isRaining = false;
   bool _isOnline = false;
   bool _isLoading = false;
+  DateTime? _lastToggleTime;
+  bool _toggleLock = false;
   
   final List<Map<String, dynamic>> _notifications = [];
   double? _prevTemp;
@@ -38,6 +43,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  // Distributed Rain Warning
+  String? _username;
+  double? _userLat;
+  double? _userLng;
+  bool _nearbyRain = false;
+  int _nearbyRainCount = 0;
+  bool _locationSet = false;
+  bool _settingLocation = false;
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +64,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       curve: Curves.easeOutQuart,
     );
     _fadeController.forward();
+    _loadNotifications();
+    _initUserData();
     _fetchStatus();
     _pollTimer = Timer.periodic(
       const Duration(seconds: 5),
@@ -62,6 +78,70 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _pollTimer?.cancel();
     _fadeController.dispose();
     super.dispose();
+  }
+
+  // ── Notification Persistence ──
+
+  static const _notifKey = 'notification_logs';
+
+  IconData _iconFromName(String name) {
+    const map = {
+      'cloud_queue': Icons.cloud_queue_rounded,
+      'umbrella': Icons.umbrella_rounded,
+      'sunny': Icons.wb_sunny_rounded,
+      'location': Icons.share_location_rounded,
+      'thermostat': Icons.thermostat_rounded,
+    };
+    return map[name] ?? Icons.info_outline_rounded;
+  }
+
+  String _iconToName(IconData icon) {
+    if (icon == Icons.cloud_queue_rounded) return 'cloud_queue';
+    if (icon == Icons.umbrella_rounded) return 'umbrella';
+    if (icon == Icons.wb_sunny_rounded) return 'sunny';
+    if (icon == Icons.share_location_rounded) return 'location';
+    if (icon == Icons.thermostat_rounded) return 'thermostat';
+    return 'info';
+  }
+
+  Color _colorFromHex(String hex) {
+    return Color(int.parse(hex, radix: 16));
+  }
+
+  Future<void> _loadNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_notifKey);
+    if (raw == null) return;
+    try {
+      final list = jsonDecode(raw) as List;
+      if (!mounted) return;
+      setState(() {
+        _notifications.clear();
+        for (final item in list) {
+          _notifications.add({
+            'title': item['title'],
+            'message': item['message'],
+            'time': item['time'],
+            'icon': _iconFromName(item['icon'] ?? 'info'),
+            'color': _colorFromHex(item['color'] ?? 'FF2563EB'),
+            'isNew': false,
+          });
+        }
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveNotifications() async {
+    final prefs = await SharedPreferences.getInstance();
+    // Simpan max 50 notifikasi terakhir
+    final toSave = _notifications.take(50).map((n) => {
+      'title': n['title'],
+      'message': n['message'],
+      'time': n['time'],
+      'icon': _iconToName(n['icon'] as IconData),
+      'color': (n['color'] as Color).value.toRadixString(16).padLeft(8, '0'),
+    }).toList();
+    await prefs.setString(_notifKey, jsonEncode(toSave));
   }
 
   void _addNotification(String title, String message, IconData icon, Color color) {
@@ -77,6 +157,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       });
       _unreadCount++;
     });
+    _saveNotifications();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -110,6 +191,95 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  Future<void> _initUserData() async {
+    final username = await SupabaseService.getSavedUsername();
+    if (username == null) return;
+    final user = await SupabaseService.getUser(username);
+    if (!mounted) return;
+    setState(() {
+      _username = username;
+      if (user != null && user['latitude'] != null) {
+        _userLat = (user['latitude'] as num).toDouble();
+        _userLng = (user['longitude'] as num).toDouble();
+        _locationSet = true;
+      }
+    });
+  }
+
+  Future<void> _setLocation() async {
+    setState(() => _settingLocation = true);
+    final pos = await SupabaseService.getCurrentLocation();
+    if (pos != null && _username != null) {
+      await SupabaseService.upsertUser(
+        username: _username!,
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+      );
+      if (mounted) {
+        setState(() {
+          _userLat = pos.latitude;
+          _userLng = pos.longitude;
+          _locationSet = true;
+          _settingLocation = false;
+        });
+      }
+    } else {
+      if (mounted) setState(() => _settingLocation = false);
+    }
+  }
+
+  Future<void> _checkNearbyRain() async {
+    if (_userLat == null || _userLng == null || _username == null) return;
+
+    // Update own rain status to Supabase
+    await SupabaseService.updateRainStatus(_username!, _isRaining);
+
+    // Query nearby raining users
+    final rainingUsers = await SupabaseService.getNearbyRainingUsers(
+      latitude: _userLat!,
+      longitude: _userLng!,
+      radiusKm: 1.0,
+      excludeUsername: _username,
+    );
+
+    if (!mounted) return;
+
+    final prevNearbyRain = _nearbyRain;
+    setState(() {
+      _nearbyRainCount = rainingUsers.length;
+      _nearbyRain = rainingUsers.isNotEmpty;
+    });
+
+    // Check cooldown
+    final inCooldown = _lastToggleTime != null &&
+        DateTime.now().difference(_lastToggleTime!).inSeconds < 6;
+    if (inCooldown) return;
+
+    // Auto-close if nearby rain detected
+    if (_nearbyRain && !prevNearbyRain && _servoOn) {
+      _addNotification(
+        'Peringatan Hujan Sekitar!',
+        '${rainingUsers.length} user dalam 1km melaporkan hujan.',
+        Icons.share_location_rounded,
+        AppTheme.warning,
+      );
+      await BlynkService.setServoPosition(0);
+      if (mounted) setState(() => _servoOn = false);
+    }
+
+    // Auto-open if local dry AND all nearby dry
+    if (!_isRaining && !_nearbyRain && prevNearbyRain && !_servoOn) {
+      _addNotification(
+        'Area Sekitar Cerah',
+        'Semua user dalam 1km melaporkan cerah. Atap dibuka.',
+        Icons.wb_sunny_rounded,
+        AppTheme.success,
+      );
+      await BlynkService.setServoPosition(1);
+      if (mounted) setState(() => _servoOn = true);
+    }
+  }
+
   Future<void> _fetchStatus() async {
     final position = await BlynkService.getServoStatus();
     final speed = await BlynkService.getServoSpeed();
@@ -119,8 +289,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     if (!mounted) return;
     setState(() {
+      final inCooldown = _lastToggleTime != null &&
+          DateTime.now().difference(_lastToggleTime!).inSeconds < 6;
+
       if (position != null) {
-        _servoOn = position == 1;
+        if (!inCooldown) {
+          _servoOn = position == 1;
+        }
         _isOnline = true;
       } else {
         _isOnline = false;
@@ -166,6 +341,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         _prevRain = currentRain;
       }
     });
+
+    // Check nearby rain after updating local state
+    if (_locationSet) {
+      await _checkNearbyRain();
+    }
   }
 
   void _showNotifications() {
@@ -277,19 +457,46 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _toggleServo(bool value) async {
+    // Prevent rapid double-taps
+    if (_toggleLock) return;
+    _toggleLock = true;
+
     HapticFeedback.heavyImpact();
-    setState(() => _isLoading = true);
+
+    // Optimistic UI update
+    setState(() {
+      _servoOn = value;
+      _isLoading = true;
+      _lastToggleTime = DateTime.now();
+    });
+
     final success = await BlynkService.setServoPosition(value ? 1 : 0);
-    if (success) setState(() => _servoOn = value);
-    setState(() => _isLoading = false);
+
+    if (!mounted) {
+      _toggleLock = false;
+      return;
+    }
+
+    if (success) {
+      // Read back from server to confirm sync
+      final confirmed = await BlynkService.getServoStatus();
+      if (mounted && confirmed != null) {
+        setState(() => _servoOn = confirmed == 1);
+        // Reset cooldown timestamp after confirmed sync
+        _lastToggleTime = DateTime.now();
+      }
+    } else {
+      // Revert on failure
+      setState(() => _servoOn = !value);
+    }
+
+    if (mounted) setState(() => _isLoading = false);
+    _toggleLock = false;
   }
 
   Future<void> _changeSpeed(double value) async {
-    HapticFeedback.selectionClick();
-    setState(() => _isLoading = true);
-    final success = await BlynkService.setServoSpeed(value.round());
-    if (success) setState(() => _speed = value);
-    setState(() => _isLoading = false);
+    setState(() => _speed = value);
+    await BlynkService.setServoSpeed(value.round());
   }
 
   @override
@@ -322,7 +529,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'SmartCloches',
+                          'Smart Clothesline',
                           style: TextStyle(
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.w900,
@@ -470,6 +677,87 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       ),
                       if (_isRaining)
                         const Icon(Icons.warning_amber_rounded, color: AppTheme.danger, size: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Distributed Rain Warning Card
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              sliver: SliverToBoxAdapter(
+                child: GlassCard(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: (_nearbyRain ? AppTheme.warning : AppTheme.accentPrimary).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              Icons.share_location_rounded,
+                              color: _nearbyRain ? AppTheme.warning : AppTheme.accentPrimary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Peringatan Sekitar (1 km)',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _locationSet
+                                      ? (_nearbyRain
+                                          ? '$_nearbyRainCount user sekitar sedang hujan'
+                                          : 'Tidak ada hujan di sekitar')
+                                      : 'Lokasi belum diatur',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: _nearbyRain ? AppTheme.warning : AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!_locationSet)
+                            TextButton.icon(
+                              onPressed: _settingLocation ? null : _setLocation,
+                              icon: _settingLocation
+                                  ? const SizedBox(
+                                      width: 14, height: 14,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.my_location_rounded, size: 16),
+                              label: Text(_settingLocation ? 'Mencari...' : 'Set Lokasi'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: AppTheme.accentPrimary,
+                                textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                          if (_locationSet)
+                            IconButton(
+                              icon: const Icon(Icons.refresh_rounded, size: 20, color: AppTheme.textTertiary),
+                              onPressed: _settingLocation ? null : _setLocation,
+                              tooltip: 'Perbarui lokasi',
+                            ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

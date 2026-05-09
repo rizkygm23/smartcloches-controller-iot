@@ -1,6 +1,6 @@
 #define BLYNK_TEMPLATE_ID "TMPL6VMq4yjbF"
 #define BLYNK_TEMPLATE_NAME "Clothes"
-#define BLYNK_AUTH_TOKEN ""
+#define BLYNK_AUTH_TOKEN "t9m61xzzdWyz0ylWlrmy_aeqIBtrZt1d"
 #define BLYNK_PRINT Serial
 
 #include <WiFi.h>
@@ -8,12 +8,12 @@
 #include <ESP32Servo.h>
 #include <Preferences.h>
 #include <DHT.h>
-#include <BluetoothSerial.h> // Tambahkan ini
+#include <BluetoothSerial.h> 
 
 // =======================
 Preferences prefs;
 Servo servo;
-BluetoothSerial SerialBT; // Tambahkan ini
+BluetoothSerial SerialBT; 
 
 // =======================
 // DHT
@@ -47,6 +47,7 @@ int rainPin = 34;
 int rainValue = 0;
 int threshold = 3000;
 bool isWet = false;
+bool wasWet = false;
 
 // =======================
 // MODE
@@ -59,6 +60,13 @@ bool manualOverride = false;
 // =======================
 void connectToWiFi(String ssid, String pass) {
   Serial.println("Connecting to WiFi...");
+
+  // Putuskan koneksi lama dulu supaya tidak bentrok
+  WiFi.disconnect(true);
+  delay(200);
+  WiFi.mode(WIFI_STA);
+  delay(100);
+
   WiFi.begin(ssid.c_str(), pass.c_str());
 
   int timeout = 0;
@@ -94,7 +102,17 @@ void updateDecision() {
     Serial.println("DECISION: HUJAN → TUTUP");
     targetPos = 0;
     manualOverride = false; // reset override
+    wasWet = true;
     Blynk.virtualWrite(V4, 0);
+    return;
+  }
+
+  // PRIORITAS 1.5: HUJAN BARU BERHENTI → BUKA OTOMATIS
+  if (wasWet && !isWet) {
+    Serial.println("DECISION: HUJAN BERHENTI → BUKA");
+    targetPos = 90;
+    wasWet = false;
+    Blynk.virtualWrite(V4, 1);
     return;
   }
 
@@ -215,10 +233,15 @@ void loop() {
   // =======================
   rainValue = analogRead(rainPin);
 
-  if (rainValue < threshold) {
-    isWet = true;
-  } else {
-    isWet = false;
+  bool newWet = (rainValue < threshold);
+
+  // Langsung panggil decision saat status hujan BERUBAH (tanpa nunggu DHT)
+  if (newWet != isWet) {
+    isWet = newWet;
+    Blynk.virtualWrite(V8, isWet ? 1 : 0);
+    updateDecision();
+    Serial.print("RAIN STATE CHANGED: ");
+    Serial.println(isWet ? "BASAH" : "KERING");
   }
 
   // =======================

@@ -1,0 +1,13 @@
+{
+  "name": "smartclothesline-rain-server",
+  "version": "1.0.0",
+  "description": "Background service for distributed rain warning system",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "dotenv": "^17.4.2"
+  }
+}
