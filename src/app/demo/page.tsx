@@ -209,9 +209,19 @@ export default function DemoPage() {
                         : '—'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <button onClick={() => deleteUser(user.id)} style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', transition: 'all 0.2s' }}>
-                        Hapus
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        {user.latitude !== null && user.longitude !== null && (
+                          <a 
+                            href={`/maps?lat=${user.latitude}&lng=${user.longitude}&username=${encodeURIComponent(user.username)}`}
+                            style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-primary)', fontSize: '0.7rem', transition: 'all 0.2s', textDecoration: 'none', display: 'inline-block' }}
+                          >
+                            📍 Lokasi
+                          </a>
+                        )}
+                        <button onClick={() => deleteUser(user.id)} style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', transition: 'all 0.2s' }}>
+                          Hapus
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
