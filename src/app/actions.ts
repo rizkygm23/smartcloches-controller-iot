@@ -28,7 +28,7 @@ export async function setServoSpeed(speed: number) {
 }
 
 export async function getServoStatus() {
-  if (!BLYNK_TOKEN) return { success: false, error: 'Token missing' };
+  if (!BLYNK_TOKEN) return { success: false, error: 'Token missing', position: null };
   try {
     const response = await fetch(`${BLYNK_BASE_URL}/get?token=${BLYNK_TOKEN}&V4`, {
       cache: 'no-store'
@@ -38,6 +38,6 @@ export async function getServoStatus() {
     return { success: true, position: parseInt(data) };
   } catch (error) {
     console.error(error);
-    return { success: false, error: 'Connection failed' };
+    return { success: false, error: 'Connection failed', position: null };
   }
 }
