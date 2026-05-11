@@ -56,10 +56,10 @@ export default function DemoPage() {
     fetchUsers();
   };
 
-  const generateNearbyUsers = async () => {
-    const baseUser = users.find(u => u.latitude !== null && u.longitude !== null);
-    if (!baseUser) {
-      setMessage('Belum ada user dengan lokasi. Set lokasi di mobile app dulu.');
+  const generateNearbyUsers = async (specificUser?: RainUser) => {
+    const baseUser = specificUser || users.find(u => u.latitude !== null && u.longitude !== null);
+    if (!baseUser || baseUser.latitude === null || baseUser.longitude === null) {
+      setMessage(specificUser ? `User ${specificUser.username} tidak memiliki lokasi.` : 'Belum ada user dengan lokasi. Set lokasi di mobile app dulu.');
       return;
     }
     setGenerating(true);
@@ -75,8 +75,8 @@ export default function DemoPage() {
       const isRaining = Math.random() > 0.5;
       await supabase.from('rain_users').upsert({
         username: name,
-        latitude: baseUser.latitude! + offsetLat,
-        longitude: baseUser.longitude! + offsetLng,
+        latitude: baseUser.latitude + offsetLat,
+        longitude: baseUser.longitude + offsetLng,
         is_raining: isRaining,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'username' });
@@ -145,7 +145,7 @@ export default function DemoPage() {
 
       {/* Actions */}
       <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.5rem', flexWrap: 'wrap' }}>
-        <button onClick={generateNearbyUsers} disabled={generating} className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '0.75rem 1.25rem' }}>
+        <button onClick={() => generateNearbyUsers()} disabled={generating} className="btn btn-primary" style={{ fontSize: '0.8rem', padding: '0.75rem 1.25rem' }}>
           {generating ? 'Generating...' : '+ Generate 3 Random Users'}
         </button>
         <button onClick={clearDummyUsers} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.75rem 1.25rem', borderColor: '#ef444433', color: '#ef4444' }}>
@@ -209,14 +209,23 @@ export default function DemoPage() {
                         : '—'}
                     </td>
                     <td style={{ padding: '0.75rem 1rem' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {user.latitude !== null && user.longitude !== null && (
-                          <a 
-                            href={`/maps?lat=${user.latitude}&lng=${user.longitude}&username=${encodeURIComponent(user.username)}`}
-                            style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-primary)', fontSize: '0.7rem', transition: 'all 0.2s', textDecoration: 'none', display: 'inline-block' }}
-                          >
-                            📍 Lokasi
-                          </a>
+                          <>
+                            <a 
+                              href={`/maps?lat=${user.latitude}&lng=${user.longitude}&username=${encodeURIComponent(user.username)}`}
+                              style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', background: 'rgba(16,185,129,0.1)', color: 'var(--accent-primary)', fontSize: '0.7rem', transition: 'all 0.2s', textDecoration: 'none', display: 'inline-block' }}
+                            >
+                              📍 Lokasi
+                            </a>
+                            <button 
+                              onClick={() => generateNearbyUsers(user)} 
+                              disabled={generating}
+                              style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.3)', cursor: 'pointer', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: '0.7rem', transition: 'all 0.2s' }}
+                            >
+                              + Dummy
+                            </button>
+                          </>
                         )}
                         <button onClick={() => deleteUser(user.id)} style={{ padding: '3px 10px', borderRadius: 6, border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'transparent', color: 'var(--text-secondary)', fontSize: '0.7rem', transition: 'all 0.2s' }}>
                           Hapus
